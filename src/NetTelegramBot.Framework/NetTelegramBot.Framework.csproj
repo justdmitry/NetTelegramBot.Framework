@@ -8,10 +8,11 @@
     <AssemblyName>NetTelegramBot.Framework</AssemblyName>
     <PackageId>NetTelegramBot.Framework</PackageId>
     <PackageTags>telegram;bot;api</PackageTags>
-    <PackageReleaseNotes>It works</PackageReleaseNotes>
+    <PackageReleaseNotes>CommandHandlers changed: now resolves from DI.</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/justdmitry/NetTelegramBot.Framework</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/justdmitry/NetTelegramBot.Framework.git</RepositoryUrl>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

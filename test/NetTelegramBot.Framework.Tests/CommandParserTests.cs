@@ -47,7 +47,7 @@
             Assert.NotNull(command);
             Assert.Equal("cmd", command.Name);
             Assert.Equal("bot1", command.BotName);
-            Assert.Equal(null, command.Args);
+            Assert.Null(command.Args);
         }
 
         [Theory]

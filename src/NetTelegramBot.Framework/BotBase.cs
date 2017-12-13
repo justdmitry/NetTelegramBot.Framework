@@ -18,16 +18,22 @@
 
         private readonly ICommandParser commandParser;
 
+        private readonly Func<Type, ICommandHandler> commandHandlerFactory;
+
         private readonly TelegramBot botApi;
 
-        protected BotBase(ILogger logger, IStorageService storageService, ICommandParser commandParser, string token)
+        protected BotBase(
+            ILogger logger,
+            IStorageService storageService,
+            ICommandParser commandParser,
+            Func<Type, ICommandHandler> commandHandlerFactory,
+            string token)
         {
             this.logger = logger;
             this.storageService = storageService;
             this.commandParser = commandParser;
+            this.commandHandlerFactory = commandHandlerFactory;
             this.botApi = new TelegramBot(token);
-
-            CommandHandlers = new Dictionary<string, ICommandHandler>(StringComparer.OrdinalIgnoreCase);
 
             OnStart();
         }
@@ -44,7 +50,7 @@
 
         public long LastOffset { get; private set; }
 
-        public Dictionary<string, ICommandHandler> CommandHandlers { get; private set; }
+        public Dictionary<string, Type> RegisteredCommandHandlers { get; } = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
         public virtual async Task ProcessAsync(Update update)
         {
@@ -58,11 +64,11 @@
                     var command = commandParser.TryParse(msg.Text);
                     if (command != null)
                     {
-                        await OnCommand(msg, command);
+                        await OnCommandAsync(msg, command);
                     }
                     else
                     {
-                        await OnMessage(msg);
+                        await OnMessageAsync(msg);
                     }
                 }
             }
@@ -98,21 +104,22 @@
             }
         }
 
-        public virtual Task OnCommand(Message message, ICommand command)
+        public virtual Task OnCommandAsync(Message message, ICommand command)
         {
-            if (CommandHandlers.TryGetValue(command.Name, out ICommandHandler handler))
+            if (RegisteredCommandHandlers.TryGetValue(command.Name, out Type handlerType))
             {
+                var handler = commandHandlerFactory(handlerType);
                 return handler.Execute(command, this, message);
             }
             else
             {
-                return OnUnknownCommand(message, command);
+                return OnUnknownCommandAsync(message, command);
             }
         }
 
-        public abstract Task OnUnknownCommand(Message message, ICommand command);
+        public abstract Task OnUnknownCommandAsync(Message message, ICommand command);
 
-        public abstract Task OnMessage(Message message);
+        public abstract Task OnMessageAsync(Message message);
 
         /// <summary>
         /// Sends 'getMe' request, fills <see cref="Id"/> and <see cref="Username"/> from response

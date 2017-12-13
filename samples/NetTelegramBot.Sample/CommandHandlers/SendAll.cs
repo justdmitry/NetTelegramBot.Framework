@@ -22,7 +22,8 @@
 
         public async Task Execute(ICommand command, BotBase bot, Message message)
         {
-            if ((message.From.Username?.Length ?? 0) < 5) // some "security" :)
+            // add some "security" :)
+            if ((message.From.Username?.Length ?? 0) < 5)
             {
                 await bot.SendAsync(new SendMessage(message.Chat.Id, "Forbidden. Sorry.")
                 {
@@ -38,7 +39,7 @@
             });
 
             // join all parts back (alternatively, you may re-parse message.Text)
-            var textToSend = string.Join(" ", command.Args);
+            var textToSend = command.Args == null ? "-no message-" : string.Join(" ", command.Args);
 
             var list = await storageService.LoadAllContextsAsync<SampleUserContext>(bot.Id);
             while (list.Item1.Count != 0)

@@ -15,7 +15,7 @@
 
     public class Startup
     {
-        private IConfigurationRoot Configuration;
+        private IConfigurationRoot configuration;
 
         public Startup(IHostingEnvironment env)
         {
@@ -24,20 +24,24 @@
                 .AddJsonFile("appsettings.json")
                 .AddUserSecrets<Startup>()
                 .AddEnvironmentVariables();
-            Configuration = builder.Build();
+            configuration = builder.Build();
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<AzureStorageServiceOptions>(Configuration.GetSection("AzureStorageServiceOptions"));
+            services.Configure<AzureStorageServiceOptions>(configuration.GetSection("AzureStorageServiceOptions"));
             services.AddSingleton<IStorageService, AzureStorageService>();
 
-            services.Configure<SampleBotOptions>(Configuration.GetSection("SampleBotOptions"));
-            services.AddTransient<ICommandParser>(_ => new CommandParser('_'));
+            services.Configure<SampleBotOptions>(configuration.GetSection("SampleBotOptions"));
+            services.AddSingleton<ICommandParser>(_ => new CommandParser('_'));
+            foreach (var x in SampleBot.CommandHandlers.Values)
+            {
+                services.AddTransient(x);
+            }
 
             services.AddSingleton<SampleBot>();
 
-            var useWebhook = !string.IsNullOrEmpty(Configuration["SampleBotOptions:WebhookUrl"]);
+            var useWebhook = !string.IsNullOrEmpty(configuration["SampleBotOptions:WebhookUrl"]);
             if (useWebhook)
             {
                 services.AddSingleton<TelegramBotMiddleware<SampleBot>>();
@@ -65,7 +69,7 @@
             if (useWebhook)
             {
                 // enable middleware
-                app.UseTelegramBot<SampleBot>(Configuration["SampleBotOptions:Endpoint"]);
+                app.UseTelegramBot<SampleBot>(configuration["SampleBotOptions:Endpoint"]);
 
                 // SetWebhook on telegram server
                 sampleBot.SendAsync(new SetWebhook(botOptions.WebhookUrl)).Wait();

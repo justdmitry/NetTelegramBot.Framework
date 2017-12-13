@@ -1,6 +1,7 @@
 ﻿namespace NetTelegramBot.Sample
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using CommandHandlers;
     using Framework.Storage;
@@ -12,6 +13,11 @@
 
     public class SampleBot : BotBase
     {
+        public static readonly Dictionary<string, Type> CommandHandlers = new Dictionary<string, Type>()
+        {
+            ["sendall"] = typeof(SendAll),
+        };
+
         private readonly SampleBotOptions options;
 
         private readonly IStorageService storageService;
@@ -20,16 +26,20 @@
             ILogger<SampleBot> logger,
             IStorageService storageService,
             ICommandParser commandParser,
+            IServiceProvider serviceProvider,
             IOptions<SampleBotOptions> options)
-            : base(logger, storageService, commandParser, options.Value.Token)
+            : base(logger, storageService, commandParser, x => (ICommandHandler)serviceProvider.GetService(x), options.Value.Token)
         {
             this.options = options.Value;
             this.storageService = storageService;
 
-            this.CommandHandlers.Add("sendall", new SendAll(storageService));
+            foreach (var pair in CommandHandlers)
+            {
+                this.RegisteredCommandHandlers[pair.Key] = pair.Value;
+            }
         }
 
-        public override Task OnUnknownCommand(Message message, ICommand command)
+        public override Task OnUnknownCommandAsync(Message message, ICommand command)
         {
             return SendAsync(new SendMessage(message.Chat.Id, "Unknown command :(")
             {
@@ -37,7 +47,7 @@
             });
         }
 
-        public override async Task OnMessage(Message message)
+        public override async Task OnMessageAsync(Message message)
         {
             // This is "regular" chat message
             // Do nothing with message itself, but save ChatId to be able to /sendall here later

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-
-namespace NetTelegramBot.Sample
+﻿namespace NetTelegramBot.Sample
 {
+    using System;
+    using System.IO;
+    using Microsoft.AspNetCore.Hosting;
+
     public static class Program
     {
         public static void Main(string[] args)

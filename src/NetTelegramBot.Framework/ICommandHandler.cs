@@ -6,6 +6,6 @@
 
     public interface ICommandHandler
     {
-        Task Execute(ICommand command, BotBase bot, Message message);
+        Task ExecuteAsync(ICommand command, BotBase bot, Message message);
     }
 }

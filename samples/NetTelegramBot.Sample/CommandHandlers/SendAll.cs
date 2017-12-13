@@ -20,7 +20,7 @@
             this.storageService = storageService;
         }
 
-        public async Task Execute(ICommand command, BotBase bot, Message message)
+        public async Task ExecuteAsync(ICommand command, BotBase bot, Message message)
         {
             // add some "security" :)
             if ((message.From.Username?.Length ?? 0) < 5)

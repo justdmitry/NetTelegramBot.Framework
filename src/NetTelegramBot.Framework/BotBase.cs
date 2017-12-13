@@ -109,7 +109,7 @@
             if (RegisteredCommandHandlers.TryGetValue(command.Name, out Type handlerType))
             {
                 var handler = commandHandlerFactory(handlerType);
-                return handler.Execute(command, this, message);
+                return handler.ExecuteAsync(command, this, message);
             }
             else
             {

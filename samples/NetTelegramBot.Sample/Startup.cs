@@ -22,7 +22,7 @@
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json")
-                .AddUserSecrets()
+                .AddUserSecrets<Startup>()
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
         }

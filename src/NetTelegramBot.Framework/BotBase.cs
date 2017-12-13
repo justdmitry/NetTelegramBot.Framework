@@ -12,15 +12,15 @@
 
     public abstract class BotBase
     {
-        private ILogger logger;
+        private readonly ILogger logger;
 
-        private IStorageService storageService;
+        private readonly IStorageService storageService;
 
-        private ICommandParser commandParser;
+        private readonly ICommandParser commandParser;
 
-        private TelegramBot botApi;
+        private readonly TelegramBot botApi;
 
-        public BotBase(ILogger logger, IStorageService storageService, ICommandParser commandParser, string token)
+        protected BotBase(ILogger logger, IStorageService storageService, ICommandParser commandParser, string token)
         {
             this.logger = logger;
             this.storageService = storageService;
@@ -74,6 +74,7 @@
                 //     put inside other (AggregateException for example) and re-throw
                 logger.LogError(0, ex, "SendAsync-related error during message processing. Ignored.");
             }
+
             LastOffset = update.UpdateId;
         }
 
@@ -99,8 +100,7 @@
 
         public virtual Task OnCommand(Message message, ICommand command)
         {
-            ICommandHandler handler;
-            if (CommandHandlers.TryGetValue(command.Name, out handler))
+            if (CommandHandlers.TryGetValue(command.Name, out ICommandHandler handler))
             {
                 return handler.Execute(command, this, message);
             }

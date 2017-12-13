@@ -32,6 +32,8 @@
         /// <summary>
         /// Saves message. Previous one (with same MessageId) will be overwritten.
         /// </summary>
+        /// <param name="message">Messages to save</param>
+        /// <returns>Awaitable Task</returns>
         public async Task SaveMessageAsync(Message message)
         {
             var tableName = options.LogTablePrefix + message.Date.UtcDateTime.Year;
@@ -156,6 +158,7 @@
             {
                 knownTables.Add(table);
             }
+
             return table;
         }
 

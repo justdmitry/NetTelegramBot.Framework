@@ -1,6 +1,8 @@
 ﻿namespace NetTelegramBot.Framework
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using NetTelegramBotApi.Requests;
     using RecurrentTasks;
 
@@ -14,11 +16,16 @@
             this.bot = bot;
         }
 
-        public void Run(ITask currentTask)
+        public void Run(ITask currentTask, CancellationToken cancellationToken)
+        {
+            RunAsync().GetAwaiter().GetResult();
+        }
+
+        public async Task RunAsync()
         {
             while (true)
             {
-                var updates = bot.SendAsync(new GetUpdates { Offset = bot.LastOffset + 1 }).Result;
+                var updates = await bot.SendAsync(new GetUpdates { Offset = bot.LastOffset + 1 });
 
                 if (updates == null || updates.Length == 0)
                 {
@@ -27,7 +34,7 @@
 
                 foreach (var update in updates)
                 {
-                    bot.ProcessAsync(update).Wait();
+                    await bot.ProcessAsync(update);
                 }
             }
         }

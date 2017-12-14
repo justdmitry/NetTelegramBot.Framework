@@ -34,7 +34,7 @@
 
                 foreach (var update in updates)
                 {
-                    await bot.ProcessAsync(update);
+                    await bot.ProcessUpdateAsync(update);
                 }
             }
         }

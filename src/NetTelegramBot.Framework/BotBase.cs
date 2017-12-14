@@ -52,38 +52,6 @@
 
         public Dictionary<string, Type> RegisteredCommandHandlers { get; } = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
-        public virtual async Task ProcessAsync(Update update)
-        {
-            try
-            {
-                var msg = update.Message;
-                if (msg != null)
-                {
-                    await storageService.SaveMessageAsync(msg);
-
-                    var command = commandParser.TryParse(msg.Text);
-                    if (command != null)
-                    {
-                        await OnCommandAsync(msg, command);
-                    }
-                    else
-                    {
-                        await OnMessageAsync(msg);
-                    }
-                }
-            }
-            catch (BotRequestException ex)
-            {
-                // Catch BotRequestException and ignore it.
-                // Otherwise, incoming mesage will be processed again and again...
-                // To avoid - just catch exception yourself (inside OnCommand/OnMessage),
-                //     put inside other (AggregateException for example) and re-throw
-                logger.LogError(0, ex, "SendAsync-related error during message processing. Ignored.");
-            }
-
-            LastOffset = update.UpdateId;
-        }
-
         public virtual Task<T> SendAsync<T>(RequestBase<T> message)
         {
             if (logger.IsEnabled(LogLevel.Debug))
@@ -94,17 +62,101 @@
             return botApi.MakeRequestAsync(message);
         }
 
+        /// <summary>
+        /// Processes incoming webhook request (deserializes from stream and calls <see cref="ProcessUpdateSafelyAsync(Update)"/>)
+        /// </summary>
+        /// <param name="stream">Request stream (with Updates)</param>
+        /// <returns>Awaitable Task</returns>
         public virtual async Task ProcessIncomingWebhookAsync(Stream stream)
         {
             using (var reader = new StreamReader(stream))
             {
                 var text = await reader.ReadToEndAsync();
                 var update = botApi.DeserializeUpdate(text);
-                await ProcessAsync(update);
+                await ProcessUpdateAsync(update);
             }
         }
 
-        public virtual Task OnCommandAsync(Message message, ICommand command)
+        /// <summary>
+        /// Processes incoming <see cref="Update"/>
+        /// </summary>
+        /// <param name="update"><see cref="Update"/> to process</param>
+        /// <returns>Awaitable Task</returns>
+        public virtual async Task ProcessUpdateAsync(Update update)
+        {
+            try
+            {
+                switch (true)
+                {
+                    case true when update.Message != null:
+                        await OnMessageAsync(update.Message);
+                        break;
+                    case true when update.EditedMessage != null:
+                        await OnEditedMessageAsync(update.EditedMessage);
+                        break;
+                    case true when update.ChannelPost != null:
+                        await OnChannelPostAsync(update.ChannelPost);
+                        break;
+                    case true when update.EditedChannelPost != null:
+                        await OnEditedChannelPostAsync(update.EditedChannelPost);
+                        break;
+                    case true when update.InlineQuery != null:
+                        await OnInlineQueryAsync(update.InlineQuery);
+                        break;
+                    case true when update.ChosenInlineResult != null:
+                        await OnChosenInlineResultAsync(update.ChosenInlineResult);
+                        break;
+                    case true when update.CallbackQuery != null:
+                        await OnCallbackQueryAsync(update.CallbackQuery);
+                        break;
+                    default:
+                        logger.LogWarning("Unknown update content, ignored");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (await HandleException(update, ex))
+                {
+                    logger.LogInformation($"Ignoring {ex.GetType().Name}, override HandleRequest() to control this.");
+                }
+                else
+                {
+                    logger.LogError(0, ex, $"Unhandler exception {ex.GetType().Name}, override HandleRequest() to control this.");
+                    throw;
+                }
+            }
+
+            LastOffset = update.UpdateId;
+        }
+
+        public virtual Task<bool> HandleException(Update update, Exception exception)
+        {
+            if (exception is BotRequestException)
+            {
+                logger.LogWarning(0, exception, $"Ignoring {nameof(BotRequestException)} (some SendAsync failed)");
+                return Task.FromResult(true);
+            }
+
+            return Task.FromResult(false);
+        }
+
+        public virtual async Task OnMessageAsync(Message message)
+        {
+            await storageService.SaveMessageAsync(message);
+
+            var command = commandParser.TryParse(message.Text);
+            if (command != null)
+            {
+                await OnCommandMessageAsync(message, command);
+            }
+            else
+            {
+                await OnTextMessageAsync(message);
+            }
+        }
+
+        public virtual Task OnCommandMessageAsync(Message message, ICommand command)
         {
             if (RegisteredCommandHandlers.TryGetValue(command.Name, out Type handlerType))
             {
@@ -113,13 +165,56 @@
             }
             else
             {
-                return OnUnknownCommandAsync(message, command);
+                return OnUnknownCommandMessageAsync(message, command);
             }
         }
 
-        public abstract Task OnUnknownCommandAsync(Message message, ICommand command);
+        public virtual Task OnUnknownCommandMessageAsync(Message message, ICommand command)
+        {
+            return SendAsync(new SendMessage(message.Chat.Id, "Unknown command: " + command.Name));
+        }
 
-        public abstract Task OnMessageAsync(Message message);
+        public virtual Task OnTextMessageAsync(Message message)
+        {
+            logger.LogInformation("Incoming text message (override OnTextMessageAsync() to handle):" + Environment.NewLine + message.Text);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnEditedMessageAsync(Message message)
+        {
+            logger.LogInformation("Edited message (override OnEditedMessageAsync() to handle):" + Environment.NewLine + message.Text);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnChannelPostAsync(Message message)
+        {
+            logger.LogInformation("Channel post (override OnChannelPostAsync() to handle):" + Environment.NewLine + message.Text);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnEditedChannelPostAsync(Message message)
+        {
+            logger.LogInformation("Edited Channel post (override OnEditedChannelPostAsync() to handle):" + Environment.NewLine + message.Text);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnInlineQueryAsync(InlineQuery inlineQuery)
+        {
+            logger.LogInformation("Inline query (override OnInlineQueryAsync() to handle):" + Environment.NewLine + inlineQuery.Query);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnChosenInlineResultAsync(ChosenInlineResult chosenInlineResult)
+        {
+            logger.LogInformation("Choosen inline result (override OnChosenInlineResultAsync() to handle):" + Environment.NewLine + chosenInlineResult.ResultId);
+            return Task.CompletedTask;
+        }
+
+        public virtual Task OnCallbackQueryAsync(CallbackQuery callbackQuery)
+        {
+            logger.LogInformation("Callback query (override OnCallbackQueryAsync() to handle):" + Environment.NewLine + callbackQuery.Data);
+            return Task.CompletedTask;
+        }
 
         /// <summary>
         /// Sends 'getMe' request, fills <see cref="Id"/> and <see cref="Username"/> from response

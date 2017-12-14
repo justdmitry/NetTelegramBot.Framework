@@ -39,15 +39,7 @@
             }
         }
 
-        public override Task OnUnknownCommandAsync(Message message, ICommand command)
-        {
-            return SendAsync(new SendMessage(message.Chat.Id, "Unknown command :(")
-            {
-                ReplyToMessageId = message.MessageId
-            });
-        }
-
-        public override async Task OnMessageAsync(Message message)
+        public override async Task OnTextMessageAsync(Message message)
         {
             // This is "regular" chat message
             // Do nothing with message itself, but save ChatId to be able to /sendall here later

@@ -52,14 +52,21 @@
 
         public Dictionary<string, Type> RegisteredCommandHandlers { get; } = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
 
-        public virtual Task<T> SendAsync<T>(RequestBase<T> message)
+        public virtual async Task<T> SendAsync<T>(RequestBase<T> message)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogDebug($"Sending {message.GetType().Name}...");
             }
 
-            return botApi.MakeRequestAsync(message);
+            var reply = await botApi.MakeRequestAsync(message);
+
+            if (reply is Message replyMessage)
+            {
+                await storageService.SaveLogAsync(Id, replyMessage);
+            }
+
+            return reply;
         }
 
         /// <summary>
@@ -143,7 +150,7 @@
 
         public virtual async Task OnMessageAsync(Message message)
         {
-            await storageService.SaveMessageAsync(message);
+            await storageService.SaveLogAsync(Id, message);
 
             var command = commandParser.TryParse(message.Text);
             if (command != null)
@@ -180,40 +187,46 @@
             return Task.CompletedTask;
         }
 
-        public virtual Task OnEditedMessageAsync(Message message)
+        public virtual async Task OnEditedMessageAsync(Message message)
         {
+            await storageService.SaveLogAsync(Id, message);
+
             logger.LogInformation("Edited message (override OnEditedMessageAsync() to handle):" + Environment.NewLine + message.Text);
-            return Task.CompletedTask;
         }
 
-        public virtual Task OnChannelPostAsync(Message message)
+        public virtual async Task OnChannelPostAsync(Message message)
         {
+            await storageService.SaveLogAsync(Id, message);
+
             logger.LogInformation("Channel post (override OnChannelPostAsync() to handle):" + Environment.NewLine + message.Text);
-            return Task.CompletedTask;
         }
 
-        public virtual Task OnEditedChannelPostAsync(Message message)
+        public virtual async Task OnEditedChannelPostAsync(Message message)
         {
+            await storageService.SaveLogAsync(Id, message);
+
             logger.LogInformation("Edited Channel post (override OnEditedChannelPostAsync() to handle):" + Environment.NewLine + message.Text);
-            return Task.CompletedTask;
         }
 
-        public virtual Task OnInlineQueryAsync(InlineQuery inlineQuery)
+        public virtual async Task OnInlineQueryAsync(InlineQuery inlineQuery)
         {
+            await storageService.SaveLogAsync(Id, inlineQuery);
+
             logger.LogInformation("Inline query (override OnInlineQueryAsync() to handle):" + Environment.NewLine + inlineQuery.Query);
-            return Task.CompletedTask;
         }
 
-        public virtual Task OnChosenInlineResultAsync(ChosenInlineResult chosenInlineResult)
+        public virtual async Task OnChosenInlineResultAsync(ChosenInlineResult chosenInlineResult)
         {
+            await storageService.SaveLogAsync(Id, chosenInlineResult);
+
             logger.LogInformation("Choosen inline result (override OnChosenInlineResultAsync() to handle):" + Environment.NewLine + chosenInlineResult.ResultId);
-            return Task.CompletedTask;
         }
 
-        public virtual Task OnCallbackQueryAsync(CallbackQuery callbackQuery)
+        public virtual async Task OnCallbackQueryAsync(CallbackQuery callbackQuery)
         {
+            await storageService.SaveLogAsync(Id, callbackQuery);
+
             logger.LogInformation("Callback query (override OnCallbackQueryAsync() to handle):" + Environment.NewLine + callbackQuery.Data);
-            return Task.CompletedTask;
         }
 
         /// <summary>

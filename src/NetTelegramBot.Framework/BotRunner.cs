@@ -16,16 +16,11 @@
             this.bot = bot;
         }
 
-        public void Run(ITask currentTask, CancellationToken cancellationToken)
-        {
-            RunAsync().GetAwaiter().GetResult();
-        }
-
-        public async Task RunAsync()
+        public async Task RunAsync(ITask currentTask, IServiceProvider scopeServiceProvider, CancellationToken cancellationToken)
         {
             while (true)
             {
-                var updates = await bot.SendAsync(new GetUpdates { Offset = bot.LastOffset + 1 });
+                var updates = await bot.SendAsync(new GetUpdates { Timeout = 15, Offset = bot.LastOffset + 1 });
 
                 if (updates == null || updates.Length == 0)
                 {

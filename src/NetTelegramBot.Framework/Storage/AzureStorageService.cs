@@ -32,35 +32,61 @@
         /// <summary>
         /// Saves message. Previous one (with same MessageId) will be overwritten.
         /// </summary>
+        /// <param name="botId">Bot ID</param>
         /// <param name="message">Messages to save</param>
         /// <returns>Awaitable Task</returns>
-        public async Task SaveMessageAsync(Message message)
+        public async Task SaveLogAsync(long botId, Message message)
         {
-            var tableName = options.LogTablePrefix + message.Date.UtcDateTime.Year;
+            var tableName = "bot" + botId + "year" + DateTimeOffset.UtcNow.Year;
             var table = await GetTable(tableName);
 
-            var entity = new ChatMessage(message);
+            var entity = ChatMessage.Create(message);
             await table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
         }
 
-        public async Task SaveContextAsync<TContext>(long botId, User user, TContext userContext)
-            where TContext : class, new()
+        public async Task SaveLogAsync(long botId, InlineQuery inlineQuery)
         {
-            var value = JsonConvert.SerializeObject(userContext, EntityPropertyExtensions.JsonSettings);
-            var entity = new BotUserOrChatContext(botId, user.Id, ChatType.Private, value);
+            var tableName = "bot" + botId + "year" + DateTimeOffset.UtcNow.Year;
+            var table = await GetTable(tableName);
 
-            var table = await GetTable(options.MainTableName);
+            var entity = ChatMessage.Create(inlineQuery);
             await table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
         }
 
-        public async Task SaveContextAsync<TContext>(long botId, Chat chat, TContext userContext)
+        public async Task SaveLogAsync(long botId, ChosenInlineResult chosenInlineResult)
+        {
+            var tableName = "bot" + botId + "year" + DateTimeOffset.UtcNow.Year;
+            var table = await GetTable(tableName);
+
+            var entity = ChatMessage.Create(chosenInlineResult);
+            await table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
+        }
+
+        public async Task SaveLogAsync(long botId, CallbackQuery callbackQuery)
+        {
+            var tableName = "bot" + botId + "year" + DateTimeOffset.UtcNow.Year;
+            var table = await GetTable(tableName);
+
+            var entity = ChatMessage.Create(callbackQuery);
+            await table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
+        }
+
+        public Task SaveContextAsync<TContext>(long botId, long userOrChatId, TContext userContext)
             where TContext : class, new()
         {
-            var value = JsonConvert.SerializeObject(userContext, EntityPropertyExtensions.JsonSettings);
-            var entity = new BotUserOrChatContext(botId, chat.Id, chat.GetChatType(), value);
+            return SaveContextAsync(botId, userOrChatId, ChatType.Unknown, userContext);
+        }
 
-            var table = await GetTable(options.MainTableName);
-            await table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
+        public Task SaveContextAsync<TContext>(long botId, User user, TContext userContext)
+            where TContext : class, new()
+        {
+            return SaveContextAsync(botId, user.Id, ChatType.Private, userContext);
+        }
+
+        public Task SaveContextAsync<TContext>(long botId, Chat chat, TContext userContext)
+            where TContext : class, new()
+        {
+            return SaveContextAsync(botId, chat.Id, chat.GetChatType(), userContext);
         }
 
         public async Task<TContext> LoadContextAsync<TContext>(long botId, long userOrChatId)
@@ -134,6 +160,16 @@
                 ? null
                 : new AzureStorageServiceContinuationToken { Token = segment.ContinuationToken };
             return Tuple.Create(contexts, (ISegmentedQueryContinuationToken)newToken);
+        }
+
+        protected async Task SaveContextAsync<TContext>(long botId, long userOrChatId, ChatType chatType, TContext userContext)
+            where TContext : class, new()
+        {
+            var value = JsonConvert.SerializeObject(userContext, EntityPropertyExtensions.JsonSettings);
+            var entity = new BotUserOrChatContext(botId, userOrChatId, chatType, value);
+
+            var table = await GetTable(options.MainTableName);
+            await table.ExecuteAsync(TableOperation.InsertOrReplace(entity));
         }
 
         protected async Task<CloudTable> GetTable(string tableName)

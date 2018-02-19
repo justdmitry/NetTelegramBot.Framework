@@ -7,7 +7,16 @@
 
     public interface IStorageService
     {
-        Task SaveMessageAsync(Message message);
+        Task SaveLogAsync(long botId, Message message);
+
+        Task SaveLogAsync(long botId, InlineQuery inlineQuery);
+
+        Task SaveLogAsync(long botId, ChosenInlineResult chosenInlineResult);
+
+        Task SaveLogAsync(long botId, CallbackQuery callbackQuery);
+
+        Task SaveContextAsync<TContext>(long botId, long userOrChatId, TContext userContext)
+            where TContext : class, new();
 
         Task SaveContextAsync<TContext>(long botId, User user, TContext userContext)
             where TContext : class, new();

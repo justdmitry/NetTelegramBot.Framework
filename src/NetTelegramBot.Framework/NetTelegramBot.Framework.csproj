@@ -8,11 +8,11 @@
     <AssemblyName>NetTelegramBot.Framework</AssemblyName>
     <PackageId>NetTelegramBot.Framework</PackageId>
     <PackageTags>telegram;bot;api</PackageTags>
-    <PackageReleaseNotes>Packages upgraded; All messages are logged (including self); Better logging (properties ow separate attributes); netstandard1.3 removed;</PackageReleaseNotes>
+    <PackageReleaseNotes>Fixed saving messages to log (messages were overwritten to second-precision message.date)</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/justdmitry/NetTelegramBot.Framework</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/justdmitry/NetTelegramBot.Framework.git</RepositoryUrl>
-    <Version>2.2.0</Version>
+    <Version>2.2.1</Version>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
 

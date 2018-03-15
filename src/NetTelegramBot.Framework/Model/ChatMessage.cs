@@ -31,7 +31,7 @@
 
         public static ChatMessage Create(Message message)
         {
-            var key = GetKey(message.Chat.Id, message.Date);
+            var key = GetKey(message.Chat.Id, DateTimeOffset.Now);
 
             return new ChatMessage()
             {
